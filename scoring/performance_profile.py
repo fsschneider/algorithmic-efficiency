@@ -274,7 +274,9 @@ def compute_performance_profiles(submissions,
                                  scale='linear',
                                  verbosity=0,
                                  strict=False,
-                                 self_tuning_ruleset=False):
+                                 self_tuning_ruleset=False,
+                                 ignore_heldouts=False,
+                                 use_qualification_set=False):
   """Compute performance profiles for a set of submission by some time column.
 
   Args:
@@ -292,6 +294,8 @@ def compute_performance_profiles(submissions,
     num_points: Number of points to use for plotting.
     scale: Linear or log scale for the x-axis.
     verbosity: Debug level of information; choice of (1, 2, 3).
+    ignore_heldouts: If True, ignore held-out workloads.
+    use_qualification_set: If True, use only the qualification set workloads.
 
   Returns:
     A DataFrame of performance profiles for the set of submissions given in
@@ -318,29 +322,37 @@ def compute_performance_profiles(submissions,
   # (ignore the additional workload variants of the baseline
   # as they cause issues when checking for nans in workload variants).
   df = df[BASE_WORKLOADS + HELDOUT_WORKLOADS]
+
   # Sort workloads alphabetically (for better display)
   df = df.reindex(sorted(df.columns), axis=1)
 
   # For each held-out workload set to inf if the base workload is inf or nan
-  for workload in df.keys():
-    if workload not in BASE_WORKLOADS:
-      # If base do not have finite score set variant score to inf
-      base_workload = get_base_workload_name(workload)
-      df[workload] = df.apply(
-          variant_criteria_filter(workload, base_workload), axis=1)
+  if not ignore_heldouts:
+    for workload in df.keys():
+      if workload not in BASE_WORKLOADS:
+        # If base do not have finite score set variant score to inf
+        base_workload = get_base_workload_name(workload)
+        df[workload] = df.apply(
+            variant_criteria_filter(workload, base_workload), axis=1)
 
   # Set score to inf if not within 4x of fastest submission
   best_scores = df.min(axis=0)
   df[df.apply(lambda x: x > 4 * best_scores, axis=1)] = np.inf
 
   # For each base workload if variant target was not hit set submission to inf
-  for workload in df.keys():
-    if workload not in BASE_WORKLOADS:
-      # If variants do not have finite score set base_workload score to inf
-      base_workload = get_base_workload_name(workload)
-      df[base_workload] = df.apply(
-          variant_criteria_filter(base_workload, workload), axis=1)
+  if not ignore_heldouts:
+    for workload in df.keys():
+      if workload not in BASE_WORKLOADS:
+        # If variants do not have finite score set base_workload score to inf
+        base_workload = get_base_workload_name(workload)
+        df[base_workload] = df.apply(
+            variant_criteria_filter(base_workload, workload), axis=1)
   df = df[BASE_WORKLOADS]
+
+  if use_qualification_set:
+    # Drop a workload that is not in the qualification set
+    # Drop if it starts with 'fastmri' or 'imagenet' or 'librispeech'
+    df = df.loc[:,~df.columns.str.startswith('fastmri') & ~df.columns.str.startswith('imagenet') & ~df.columns.str.startswith('librispeech')]
 
   if verbosity > 0:
     logging.info('\n`{time_col}` to reach target:')
@@ -379,8 +391,9 @@ def compute_performance_profiles(submissions,
     points = np.logspace(
         np.log10(min_tau), np.log10(max_tau), num=num_points, base=10.0)
 
+  NUM_WORKLOADS = len(df.columns)
   def rho(r, tau):
-    return (r <= tau).sum(axis=1) / NUM_BASE_WORKLOADS
+    return (r <= tau).sum(axis=1) / NUM_WORKLOADS
 
   perf_df = pd.concat([rho(df, tau) for tau in points], axis=1)
 
