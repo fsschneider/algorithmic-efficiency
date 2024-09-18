@@ -23,6 +23,11 @@ flags.DEFINE_boolean('self_tuning_ruleset',
 flags.DEFINE_boolean('save_results',
                      False,
                      'Whether to save the results to disk.')
+flags.DEFINE_string(
+    'exclude_workloads',
+    '',
+    'Optional comma seperated list of names of workloads to exclude from speedup computation.'
+)
 FLAGS = flags.FLAGS
 
 MAX_BUDGETS = {
@@ -73,6 +78,12 @@ def compute_speedup():
       time_col="score",
       self_tuning_ruleset=FLAGS.self_tuning_ruleset,
   )
+
+  # Exclude workloads
+  print(base_results, comparison_results)
+  base_results = base_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
+  comparison_results = comparison_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
+  print(base_results, comparison_results)
 
   # Merge results
   merged_results = pd.concat([base_results, comparison_results]).transpose()
