@@ -352,7 +352,10 @@ def compute_performance_profiles(submissions,
   if use_qualification_set:
     # Drop a workload that is not in the qualification set
     # Drop if it starts with 'fastmri' or 'imagenet' or 'librispeech'
-    df = df.loc[:,~df.columns.str.startswith('fastmri') & ~df.columns.str.startswith('imagenet') & ~df.columns.str.startswith('librispeech')]
+    df = df.loc[:,
+                ~df.columns.str.startswith('fastmri')
+                & ~df.columns.str.startswith('imagenet')
+                & ~df.columns.str.startswith('librispeech')]
 
   if verbosity > 0:
     logging.info('\n`{time_col}` to reach target:')
@@ -392,6 +395,7 @@ def compute_performance_profiles(submissions,
         np.log10(min_tau), np.log10(max_tau), num=num_points, base=10.0)
 
   NUM_WORKLOADS = len(df.columns)
+
   def rho(r, tau):
     return (r <= tau).sum(axis=1) / NUM_WORKLOADS
 

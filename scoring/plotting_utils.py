@@ -21,6 +21,26 @@ MAX_BUDGETS = {
     'wmt': 48_151,
 }
 
+STEP_HINTS = {
+    'criteo1tb': 10_666,
+    'fastmri': 36_189,
+    'imagenet_resnet': 186_666,
+    'imagenet_vit': 186_666,
+    'librispeech_conformer': 80_000,
+    'librispeech_deepspeech': 48_000,
+    'ogbg': 80_000,
+    'wmt': 133_333,
+}
+
+METRIC_FMT = {
+    "bleu": "BLEU",
+    "loss": "Cross-Entropy Loss",
+    "accuracy": "Accuracy",
+    "ssim": "SSIM",
+    "wer": "Word Error Rate",
+    "mean_average_precision": "Mean Average Precision",
+}
+
 PLOT_STYLE = {
     "prize_qualification_baseline": {
         "color": "#32414b",
@@ -153,14 +173,23 @@ def get_time_to_target(trial_df, performance_metric, target):
     return time_to_target[0]
 
 
-def clean_submission_results(submission_results):
+def clean_submission_results(submission_results, self_tuning=False):
   clean_results = []
   # For each workload check studies
   for workload, group in submission_results.groupby("workload"):
     workload_name = re.sub(r'_(jax|pytorch)$', '', workload)
     validation_metric, validation_target = get_workload_metrics_and_targets(workload)
     base_workload_name = get_base_workload_name(workload_name)
-    runtime_budget = MAX_BUDGETS[base_workload_name]
+    runtime_budget = MAX_BUDGETS[
+        base_workload_name] if not self_tuning else 3 * MAX_BUDGETS[
+            base_workload_name]
+    step_hint = STEP_HINTS[
+        base_workload_name] if not self_tuning else 3 * STEP_HINTS[
+            base_workload_name]
+    group["last_global_step"] = group["global_step"].apply(lambda x: x[-1])
+    group["last_submission_time"] = group["accumulated_submission_time"].apply(
+        lambda x: x[-1])
+    group["last_performance"] = group[validation_metric].apply(lambda x: x[-1])
     # For each study check trials
     for study, group in group.groupby('study'):
       for trial, group in group.groupby('trial'):
@@ -177,15 +206,19 @@ def clean_submission_results(submission_results):
             'validation_metric': validation_metric,
             'performance_target': validation_target,
             'runtime_budget': runtime_budget,
+            'last_global_step': group["last_global_step"].values[0],
+            'last_submission_time': group["last_submission_time"].values[0],
+            'last_performance': group["last_performance"].values[0],
+            'max_global_step': step_hint,
         })
   df = pd.DataFrame.from_records(clean_results)
   return df
 
 
-def clean_results(results):
+def clean_results(results, self_tuning=False):
   clean_results = {}
   for submission_name, submission_results in results.items():
     clean_results[submission_name] = clean_submission_results(
-        submission_results)
+        submission_results, self_tuning)
 
   return clean_results
