@@ -276,6 +276,7 @@ def compute_performance_profiles(submissions,
                                  strict=False,
                                  self_tuning_ruleset=False,
                                  ignore_heldouts=False,
+                                 ignore_workload=None,
                                  use_qualification_set=False):
   """Compute performance profiles for a set of submission by some time column.
 
@@ -318,6 +319,7 @@ def compute_performance_profiles(submissions,
                                      self_tuning_ruleset,
                                      strict))
   df = pd.concat(dfs)
+
   # Restrict to base and sampled held-out workloads
   # (ignore the additional workload variants of the baseline
   # as they cause issues when checking for nans in workload variants).
@@ -348,6 +350,9 @@ def compute_performance_profiles(submissions,
         df[base_workload] = df.apply(
             variant_criteria_filter(base_workload, workload), axis=1)
   df = df[BASE_WORKLOADS]
+
+  if ignore_workload is not None:
+    df = df.drop(ignore_workload, axis=1)
 
   if use_qualification_set:
     # Drop a workload that is not in the qualification set

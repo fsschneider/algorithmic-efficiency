@@ -80,10 +80,9 @@ def compute_speedup():
   )
 
   # Exclude workloads
-  print(base_results, comparison_results)
-  base_results = base_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
-  comparison_results = comparison_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
-  print(base_results, comparison_results)
+  if FLAGS.exclude_workloads:
+    base_results = base_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
+    comparison_results = comparison_results.drop(FLAGS.exclude_workloads.split(','), axis=1)
 
   # Merge results
   merged_results = pd.concat([base_results, comparison_results]).transpose()

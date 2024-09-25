@@ -207,12 +207,15 @@ def main(_):
         strict=FLAGS.strict)
     if not os.path.exists(FLAGS.output_dir):
       os.mkdir(FLAGS.output_dir)
+
     performance_profile.plot_performance_profiles(
         performance_profile_df, 'score', save_dir=FLAGS.output_dir)
     performance_profile_str = tabulate(
         performance_profile_df.T, headers='keys', tablefmt='psql')
     logging.info(f'Performance profile:\n {performance_profile_str}')
     scores = compute_leaderboard_score(performance_profile_df)
+    # Sort by score
+    scores = scores.sort_values(by='score', ascending=False)
     scores.to_csv(os.path.join(FLAGS.output_dir, 'scores.csv'))
     scores_str = tabulate(scores, headers='keys', tablefmt='psql')
     logging.info(f'Scores: \n {scores_str}')
