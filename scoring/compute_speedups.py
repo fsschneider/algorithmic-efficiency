@@ -55,7 +55,7 @@ def replace_inf(row):
   # Factor of 3 for self-tuning ruleset
   factor = 3 if FLAGS.self_tuning_ruleset else 1
   max_runtime_workload = factor * MAX_BUDGETS[workload_name]
-  row.replace(np.inf, max_runtime_workload + 1, inplace=True)
+  row.replace(np.inf, max_runtime_workload, inplace=True)
   return row
 
 
