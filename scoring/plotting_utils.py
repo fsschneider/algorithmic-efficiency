@@ -88,7 +88,7 @@ PLOT_STYLE = {
         "color": sns.color_palette("tab10")[9],
         "linestyle": "-",
         "marker": "X",
-        "label": "Shampoo",
+        "label": "PyTorch Distr. Shampoo",
         "command": r'\shampoosub',
     },
     "caspr_adaptive": {
