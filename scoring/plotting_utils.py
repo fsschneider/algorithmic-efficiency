@@ -205,6 +205,15 @@ def clean_submission_results(submission_results, self_tuning=False):
     group["last_submission_time"] = group["accumulated_submission_time"].apply(
         lambda x: x[-1])
     group["last_performance"] = group[validation_metric].apply(lambda x: x[-1])
+
+    # Identify the train loss column
+    if workload.startswith("fastmri"):
+        loss_column = "train/ssim"
+    elif workload.startswith("librispeech"):
+        loss_column = "train/ctc_loss"
+    else:
+        loss_column = "train/loss"
+
     # For each study check trials
     for study, group in group.groupby('study'):
       for trial, group in group.groupby('trial'):
@@ -225,6 +234,7 @@ def clean_submission_results(submission_results, self_tuning=False):
             'last_submission_time': group["last_submission_time"].values[0],
             'last_performance': group["last_performance"].values[0],
             'max_global_step': step_hint,
+            'train_loss': group[loss_column].values[0],
         })
   df = pd.DataFrame.from_records(clean_results)
   return df
