@@ -55,6 +55,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["algoperf"]
+py-modules = ["submission_runner"]
 include-package-data = true
 zip-safe = false
 
