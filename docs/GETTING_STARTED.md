@@ -18,13 +18,15 @@
     - [Docker Tips](#docker-tips)
 - [Score your Submission](#score-your-submission)
   - [Running workloads](#running-workloads)
+- [Package your Submission code](#package-your-submission-code)
+- [Package Logs for Self-Reporting Submissions](#package-logs-for-self-reporting-submissions)
 
 ## Set Up and Installation
 
 To get started you will have to make a few decisions and install the repository along with its dependencies. Specifically:
 
 1. Decide if you would like to develop your submission in either PyTorch or JAX.
-2. Set up your workstation or VM. We recommend to use a setup similar to the [benchmarking hardware](/DOCUMENTATION.md#benchmarking-hardware).
+2. Set up your workstation or VM. We recommend to use a setup similar to the [benchmarking hardware](/docs/DOCUMENTATION.md#benchmarking-hardware).
 The specs on the benchmarking machines are:
     - 8xV100 16GB GPUs
     - 240 GB in RAM
@@ -206,7 +208,7 @@ You can find examples of submission modules under `algorithmic-efficiency/prize_
 A submission for the external ruleset will consist of a submission module and a tuning search space definition.
 
 1. Copy the template submission module `submissions/template/submission.py` into your submissions directory e.g. in `algorithmic-efficiency/my_submissions`.
-2. Implement at least the methods in the template submission module. Feel free to use helper functions and/or modules as you see fit. Make sure you adhere to to the competition rules. Check out the guidelines for [allowed submissions](/DOCUMENTATION.md#allowed-submissions), [disallowed submissions](/DOCUMENTATION.md#allowed-submissions) and pay special attention to the [software dependencies rule](/DOCUMENTATION.md#software-dependencies).
+2. Implement at least the methods in the template submission module. Feel free to use helper functions and/or modules as you see fit. Make sure you adhere to to the competition rules. Check out the guidelines for [allowed submissions](/docs/DOCUMENTATION.md#allowed-submissions), [disallowed submissions](/docs/DOCUMENTATION.md#allowed-submissions) and pay special attention to the [software dependencies rule](/docs/DOCUMENTATION.md#software-dependencies).
 3. Add a tuning configuration e.g. `tuning_search_space.json` file to your submission directory. For the tuning search space you can either:
     1. Define the set of feasible points by defining a value for "feasible_points" for the hyperparameters:
 
@@ -427,7 +429,7 @@ To check that your submission folder meets the above requirements you can run th
 
 To prepare your submission for self reporting run:
 
-```
+```bash
 python3 package_logs.py --experiment_dir <experiment_dir> --destination_dir <destination_dir>
 ```
 

@@ -19,11 +19,11 @@ Please fill out the (mandatory but non-binding) [**registration form**](https://
 - **Submission deadline: April 04th, 2024** *(moved by a week from the initial March 28th, 2024)*
 - [Announcement of all results](https://mlcommons.org/2024/08/mlc-algoperf-benchmark-competition/): August 1st, 2024
 
-For a detailed and up-to-date timeline see the [Competition Rules](/COMPETITION_RULES.md).
+For a detailed and up-to-date timeline see the [Competition Rules](/docs/COMPETITION_RULES.md).
 
 ## Participation
 
-For details on how to participate in the competition, please refer to our [Competition Rules](/COMPETITION_RULES.md). To learn more about the benchmark, see our [technical documentation](/DOCUMENTATION.md). The benchmark is further motivated, explained, and justified in the accompanying [paper](https://arxiv.org/abs/2306.07179). We require all submissions to be provided under the open-source [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).
+For details on how to participate in the competition, please refer to our [Competition Rules](/docs/COMPETITION_RULES.md). To learn more about the benchmark, see our [technical documentation](/docs/DOCUMENTATION.md). The benchmark is further motivated, explained, and justified in the accompanying [paper](https://arxiv.org/abs/2306.07179). We require all submissions to be provided under the open-source [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).
 
 ## Prize Money & Funding
 

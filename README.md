@@ -7,11 +7,11 @@
 
 <p align="center">
   <a href="https://arxiv.org/abs/2306.07179" target="_blank">Paper (arXiv)</a> •
-  <a href="/CALL_FOR_SUBMISSIONS.md">Call for Submissions</a> •
-  <a href="/GETTING_STARTED.md">Getting Started</a> •
-  <a href="/COMPETITION_RULES.md">Competition Rules</a> •
-  <a href="/DOCUMENTATION.md">Documentation</a> •
-  <a href="/CONTRIBUTING.md">Contributing</a>
+  <a href="/docs/CALL_FOR_SUBMISSIONS.md">Call for Submissions</a> •
+  <a href="/docs/GETTING_STARTED.md">Getting Started</a> •
+  <a href="/docs/COMPETITION_RULES.md">Competition Rules</a> •
+  <a href="/docs/DOCUMENTATION.md">Documentation</a> •
+  <a href="/docs/CONTRIBUTING.md">Contributing</a>
 </p>
 
 [![CI](https://github.com/mlcommons/algorithmic-efficiency/actions/workflows/CI.yml/badge.svg)](https://github.com/mlcommons/algorithmic-efficiency/actions/workflows/CI.yml)
@@ -22,7 +22,7 @@
 
 ---
 
-> *AlgoPerf* is a suite of benchmarks and competitions to measure neural network training speedups due to algorithmic improvements in both training algorithms and models. This is the repository for the *AlgoPerf: Training Algorithms benchmark* and its associated competition. It is developed by the [MLCommons Algorithms Working Group](https://mlcommons.org/en/groups/research-algorithms/). This repository holds the [**competition rules**](/COMPETITION_RULES.md), the [**technical documentation**](/DOCUMENTATION.md) of the benchmark, [**getting started guides**](/GETTING_STARTED.md), and the benchmark code. For a detailed description of the benchmark design, see our [**paper**](https://arxiv.org/abs/2306.07179).
+> *AlgoPerf* is a suite of benchmarks and competitions to measure neural network training speedups due to algorithmic improvements in both training algorithms and models. This is the repository for the *AlgoPerf: Training Algorithms benchmark* and its associated competition. It is developed by the [MLCommons Algorithms Working Group](https://mlcommons.org/en/groups/research-algorithms/). This repository holds the [**competition rules**](/docs/COMPETITION_RULES.md), the [**technical documentation**](/docs/DOCUMENTATION.md) of the benchmark, [**getting started guides**](/docs/GETTING_STARTED.md), and the benchmark code. For a detailed description of the benchmark design, see our [**paper**](https://arxiv.org/abs/2306.07179).
 
 ---
 
@@ -45,9 +45,9 @@
 > [!TIP]
 > **If you have any questions about the benchmark competition or you run into any issues, please feel free to contact us.** Either [file an issue](https://github.com/mlcommons/algorithmic-efficiency/issues), ask a question on [our Discord](https://discord.gg/5FPXK7SMt6) or [join our weekly meetings](https://mlcommons.org/en/groups/research-algorithms/).
 
-You can install this package and dependencies in a [Python virtual environment](/GETTING_STARTED.md#python-virtual-environment) or use a [Docker/Singularity/Apptainer container](/GETTING_STARTED.md#docker) (recommended).
+You can install this package and dependencies in a [Python virtual environment](/docs/GETTING_STARTED.md#python-virtual-environment) or use a [Docker/Singularity/Apptainer container](/docs/GETTING_STARTED.md#docker) (recommended).
 We recommend using a Docker container (or alternatively, a Singularity/Apptainer container) to ensure a similar environment to our scoring and testing environments.
-Both options are described in detail in the [**Getting Started**](/GETTING_STARTED.md) document.
+Both options are described in detail in the [**Getting Started**](/docs/GETTING_STARTED.md) document.
 
 *TL;DR to install the Jax version for GPU run:*
 
@@ -67,7 +67,7 @@ pip3 install -e '.[full]'
 
 ## Getting Started
 
-For detailed instructions on developing and scoring your own algorithm in the benchmark see the [Getting Started](/GETTING_STARTED.md) document.
+For detailed instructions on developing and scoring your own algorithm in the benchmark see the [Getting Started](/docs/GETTING_STARTED.md) document.
 
 *TL;DR running a JAX workload:*
 
@@ -95,21 +95,21 @@ python3 submission_runner.py \
 
 ## Call for Submissions
 
-The [Call for Submissions](/CALL_FOR_SUBMISSIONS.md) announces the first iteration of the AlgoPerf: Training Algorithms competition based on the benchmark by the same name. This document also contains the schedule and key dates for the competition.
+The [Call for Submissions](/docs/CALL_FOR_SUBMISSIONS.md) announces the first iteration of the AlgoPerf: Training Algorithms competition based on the benchmark by the same name. This document also contains the schedule and key dates for the competition.
 
 ### Competition Rules
 
-The competition rules for the *AlgoPerf: Training Algorithms* competition can be found in the separate [**Competition Rules**](/COMPETITION_RULES.md) document.
+The competition rules for the *AlgoPerf: Training Algorithms* competition can be found in the separate [**Competition Rules**](/docs/COMPETITION_RULES.md) document.
 
 ### Technical Documentation of the Benchmark & FAQs
 
-We provide additional technical documentation of the benchmark and answer frequently asked questions in a separate [**Documentation**](/DOCUMENTATION.md) page. Suggestions, clarifications and questions can be raised via pull requests, creating an issue, or by sending an email to the [working group](mailto:algorithms@mlcommons.org).
+We provide additional technical documentation of the benchmark and answer frequently asked questions in a separate [**Documentation**](/docs/DOCUMENTATION.md) page. Suggestions, clarifications and questions can be raised via pull requests, creating an issue, or by sending an email to the [working group](mailto:algorithms@mlcommons.org).
 
 ## Contributing
 
 We invite everyone to look through our rules, documentation, and codebase and submit issues and pull requests, e.g. for rules changes, clarifications, or any bugs you might encounter. If you are interested in contributing to the work of the working group and influence the benchmark's design decisions, please [join the weekly meetings](https://mlcommons.org/en/groups/research-algorithms/) and consider becoming a member of the working group.
 
-Our [**Contributing**](/CONTRIBUTING.md) document provides further MLCommons contributing guidelines and additional setup and workflow instructions.
+Our [**Contributing**](/docs/CONTRIBUTING.md) document provides further MLCommons contributing guidelines and additional setup and workflow instructions.
 
 ## License
 

@@ -71,8 +71,8 @@ We recommend developing in our Docker image to ensure a consistent environment b
 
 To get started see also:
 
-- [Installation with Docker](/GETTING_STARTED.md#docker)
-- [Running a submission inside a Docker Container](/GETTING_STARTED.md#run-your-submission-in-a-docker-container)
+- [Installation with Docker](/docs/GETTING_STARTED.md#docker)
+- [Running a submission inside a Docker Container](/docs/GETTING_STARTED.md#run-your-submission-in-a-docker-container)
 
 ### Pre-built Images on Google Cloud Container Registry
 

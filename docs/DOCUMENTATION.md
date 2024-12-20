@@ -65,7 +65,7 @@ The intention is that a training algorithm submission will be broadly applicable
 
 ### Competition Rules
 
-For a description of the competition rules and how to submit a training algorithm to the AlgoPerf: Training Algorithms Benchmark, see the [Competition Rules](/COMPETITION_RULES.md), which details the entire competition process.
+For a description of the competition rules and how to submit a training algorithm to the AlgoPerf: Training Algorithms Benchmark, see the [Competition Rules](/docs/COMPETITION_RULES.md), which details the entire competition process.
 
 ### Submissions
 
@@ -222,7 +222,6 @@ def update_params(
 - Cannot replace the model parameters with pre-trained ones.
 - Batch norm should work here because the `model_fn` will return updated batch norm moving averages when it is told to with `update_batch_norm`.
 
-
 ###### Prepare for evaluation function
 
 ```python
@@ -278,7 +277,7 @@ def data_selection(
 
 In general, with noisy, non-deterministic training, evaluation frequency can affect training time measurements as more "bites of the apple" potentially allows the training code to exploit instability. We also want to discourage submissions from complicated and unrealistic logic that attempts to guess when training is close to complete and increases the evaluation rate, while not producing a well-sampled training curve at the start of training. Simply allowing submissions complete freedom over evaluation frequency encourages competitors to work to minimize the number of evaluations, which distracts from the primary goal of finding better training algorithms.
 
-Submissions are eligible for an untimed eval every `eval_period` seconds. Before proceeding to evaluation, the submission can prepare the model through a call to `prepare_for_eval`, effectively modifying the model parameters and state as well as the the optimizer state. Any additional evaluations performed by the submission code count against the runtime for scoring. 
+Submissions are eligible for an untimed eval every `eval_period` seconds. Before proceeding to evaluation, the submission can prepare the model through a call to `prepare_for_eval`, effectively modifying the model parameters and state as well as the the optimizer state. Any additional evaluations performed by the submission code count against the runtime for scoring.
 The harness that runs the submission code will attempt to eval every `eval_period` seconds by checking between each submission step (call of `update_params`) whether it has been at least `eval_period` seconds since that last eval, if so, the submission is given the possibility to prepare for evaluation (through a timed call to `prepare_for_eval`). If the accumulated runtime does not exceed the maximum allowed runtime after the preparation step, the clock is paused, and the submission is evaluated. This means that if calls to `update_params` typically take a lot more than `eval_period` seconds, such submissions will not receive as many untimed evals as a submission that had an `update_params` function that took less time. However, for appropriate settings of `eval_period`, we expect this to be quite rare. Submissions are always free to restructure their `update_params` code to split work into two subsequent steps to regain the potential benefits of these untimed model evaluations. For each workload, the `eval_period` will be set such that the total evaluation time is roughly between 10% and 20% of the total training time for the target-setting runs.
 
 #### Valid submissions
@@ -475,7 +474,7 @@ Our scoring procedure uses the held-out workloads only to penalize submissions t
 
 NOTE: Submitters are no longer required to self-report results for AlgoPerf competition v0.5.
 
-The qualification set is designed for submitters that may not have the compute resources to self-report on the full set of [fixed](#fixed-workloads) and [held-out workloads](#randomized-workloads). They may instead self-report numbers on this smaller qualification set. The best-performing submissions may then qualify for compute sponsorship offering a free evaluation on the full benchmark set and therefore the possibility to win [awards and prizes](/COMPETITION_RULES.md#prizes).
+The qualification set is designed for submitters that may not have the compute resources to self-report on the full set of [fixed](#fixed-workloads) and [held-out workloads](#randomized-workloads). They may instead self-report numbers on this smaller qualification set. The best-performing submissions may then qualify for compute sponsorship offering a free evaluation on the full benchmark set and therefore the possibility to win [awards and prizes](/docs/COMPETITION_RULES.md#prizes).
 
 The qualification set consists of the same [fixed workloads](#fixed-workloads) as mentioned above, except for both workloads on *ImageNet*, both workloads on *LibriSpeech*, and the *fastMRI* workload. The remaining three workloads (*WMT*, *Criteo 1TB*, and *OGBG*) form the qualification set. There are no [randomized workloads](#randomized-workloads) in the qualification set. The qualification set of workloads aims to have a combined runtime of roughly 24 hours on the [benchmarking hardware](#benchmarking-hardware).
 
@@ -585,7 +584,7 @@ GPUs with higher per GPU memory, please monitor your memory usage to make sure i
 
 #### How do I run this on my SLURM cluster?
 
-You may run into issues with `sudo` and `docker` on a SLURM cluster. To run the workloads in a SLURM cluster you can use Apptainer (previously Singularity), see this [section](/GETTING_STARTED.md#using-singularityapptainer-instead-of-docker).
+You may run into issues with `sudo` and `docker` on a SLURM cluster. To run the workloads in a SLURM cluster you can use Apptainer (previously Singularity), see this [section](/docs/GETTING_STARTED.md#using-singularityapptainer-instead-of-docker).
 
 #### How can I run this on my AWS/GCP/Azure cloud project?
 
@@ -627,13 +626,13 @@ You only have to use the benchmarking hardware for runs that are directly involv
 
 NOTE: Submitters are no longer required to self-report results for AlgoPerf competition v0.5.
 
-Submitters unable to self-fund scoring costs can instead self-report only on the [qualification set of workloads](/COMPETITION_RULES.md#qualification-set) that excludes some of the most expensive workloads. Based on this performance on the qualification set, the working group will provide - as funding allows - compute to evaluate and score the most promising submissions. Additionally, we encourage researchers to reach out to the [working group](mailto:algorithms@mlcommons.org) to find potential collaborators with the resources to run larger, more comprehensive experiments for both developing and scoring submissions.
+Submitters unable to self-fund scoring costs can instead self-report only on the [qualification set of workloads](/docs/COMPETITION_RULES.md#qualification-set) that excludes some of the most expensive workloads. Based on this performance on the qualification set, the working group will provide - as funding allows - compute to evaluate and score the most promising submissions. Additionally, we encourage researchers to reach out to the [working group](mailto:algorithms@mlcommons.org) to find potential collaborators with the resources to run larger, more comprehensive experiments for both developing and scoring submissions.
 
 #### Can I submit previously published training algorithms as submissions?
 
 Yes, you may, as long as it isn't an exact copy of an existing submission.
 For example, you may submit the Adam optimizer with your particularly effective hyperparameter search space and hyperparameter configuration, as different choices for hyperparameter values and/or search spaces constitute different training algorithms and are potential sources of innovation.
-That said, while submitting Adam with some novel heuristic to set various hyperparameters, some especially effective hyperparameter search space, or your single best hyperparameter configuration is fine, avoid making multiple submissions that only differ by their hyperparameter configuration without a convincing justification they are substantially different (see ["Can I submit multiple times to the benchmark competition?"](/COMPETITION_RULES.md#can-i-submit-multiple-times-to-the-benchmark-competition), above).
+That said, while submitting Adam with some novel heuristic to set various hyperparameters, some especially effective hyperparameter search space, or your single best hyperparameter configuration is fine, avoid making multiple submissions that only differ by their hyperparameter configuration without a convincing justification they are substantially different (see ["Can I submit multiple times to the benchmark competition?"](/docs/COMPETITION_RULES.md#can-i-submit-multiple-times-to-the-benchmark-competition), above).
 
 ## Disclaimers
 

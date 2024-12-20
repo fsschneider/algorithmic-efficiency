@@ -45,7 +45,7 @@ Some dataset setups will require you to sign a third-party agreement with the da
 
 If you are running the `dataset_setup.py` script from a Docker container, please
 make sure the data directory is mounted to a directory on your host with
-`-v` flag. If you are following instructions from the [Getting Started guide](/GETTING_STARTED.md) you will have used
+`-v` flag. If you are following instructions from the [Getting Started guide](/docs/GETTING_STARTED.md) you will have used
 the `-v $HOME/data:/data` flag in the `docker run` command. This will mount
 the `$HOME/data` directory to the `/data` directory in the container.
 In this case set, `--data_dir` to  `/data`.
