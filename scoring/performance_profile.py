@@ -31,15 +31,15 @@ import operator
 import os
 import re
 
-from absl import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from absl import logging
 from tabulate import tabulate
 
-from algorithmic_efficiency.workloads.workloads import get_base_workload_name
 import algorithmic_efficiency.workloads.workloads as workloads_registry
+from algorithmic_efficiency.workloads.workloads import get_base_workload_name
 from scoring import scoring_utils
 
 WORKLOADS = workloads_registry.WORKLOADS
@@ -167,7 +167,8 @@ def get_workloads_time_to_target(submission,
                                  time_col='global_step',
                                  verbosity=1,
                                  self_tuning_ruleset=False,
-                                 strict=False):
+                                 strict=False,
+                                 study_mode=None):
   """Get times to target for each workload in a submission.
 
   Args:
@@ -236,11 +237,25 @@ def get_workloads_time_to_target(submission,
         time_val = float('inf')
       time_vals_per_study.append(time_val)
 
-    workloads.append({
-        'submission': submission_name,
-        'workload': re.sub(r'_(jax|pytorch)$', '', workload),
-        time_col: np.median(time_vals_per_study),
-    })
+    if study_mode is None:
+      workloads.append({
+          'submission': submission_name,
+          'workload': re.sub(r'_(jax|pytorch)$', '', workload),
+          time_col: np.median(time_vals_per_study),
+      })
+    elif isinstance(study_mode, int):
+      if len(time_vals_per_study) == 5:
+        workloads.append({
+            'submission': submission_name,
+            'workload': re.sub(r'_(jax|pytorch)$', '', workload),
+            time_col: time_vals_per_study[study_mode],
+        })
+    elif study_mode == "all":
+      workloads.append({
+          'submission': submission_name,
+          'workload': re.sub(r'_(jax|pytorch)$', '', workload),
+          time_col: time_vals_per_study,
+      })
 
   df = pd.DataFrame.from_records(workloads)
   df = df.pivot(index='submission', columns='workload', values=time_col)
@@ -265,6 +280,67 @@ def variant_criteria_filter(base_workload, variant_workload):
   return filter
 
 
+def expand_dataframe(df):
+  # Create a list to store the new rows
+  new_rows = []
+
+  # Iterate through each row of the original DataFrame
+  for index, row in df.iterrows():
+    # For each of the 5 elements in the lists or 5 repetitions for floats
+    for i in range(5):
+      # Create a new row
+      new_row = {}
+      for col in df.columns:
+        if isinstance(row[col], (list, np.ndarray)):
+          # If it's a list or numpy array, use the i-th element or np.inf
+          new_row[col] = row[col][i] if i < len(row[col]) else np.inf
+        else:
+          # If it's a float or any other type, use the value for i=0 and np.inf for others
+          new_row[col] = row[col] if i == 0 else np.inf
+
+      new_rows.append(pd.Series(new_row, name=f"{index}_{i}"))
+
+  # Create a new DataFrame from the list of new rows
+  expanded_df = pd.DataFrame(new_rows)
+
+  return expanded_df
+
+
+def collapse_dataframe(df):
+  # Function to get the base name and index from a row name
+  def parse_row_name(row_name):
+    match = re.match(r'(.+)_(\d+)$', row_name)
+    if match:
+      return match.group(1), int(match.group(2))
+    else:
+      raise ValueError(f"Unexpected row name format: {row_name}")
+
+  # Get the unique base names
+  base_names = set(parse_row_name(index)[0] for index in df.index)
+
+  # Dictionary to store the new data
+  new_data = {base_name: {} for base_name in base_names}
+
+  # Iterate through each column
+  for col in df.columns:
+    # Iterate through each base name
+    for base_name in base_names:
+      # Get the values for this base name and column
+      for i in range(5):
+        new_col_name = f"{col}_{i}"
+        matching_rows = [idx for idx in df.index if idx == f"{base_name}_{i}"]
+        if matching_rows:
+          value = df.loc[matching_rows[0], col]
+          # Only add the column if it's not inf or NaN
+          if not (value == np.inf or pd.isna(value)):
+            new_data[base_name][new_col_name] = value
+
+  # Create the new DataFrame
+  collapsed_df = pd.DataFrame(new_data).T
+
+  return collapsed_df
+
+
 def compute_performance_profiles(submissions,
                                  time_col='global_step',
                                  min_tau=1.0,
@@ -277,7 +353,8 @@ def compute_performance_profiles(submissions,
                                  self_tuning_ruleset=False,
                                  ignore_heldouts=False,
                                  ignore_workload=None,
-                                 use_qualification_set=False):
+                                 use_qualification_set=False,
+                                 study_mode=None):
   """Compute performance profiles for a set of submission by some time column.
 
   Args:
@@ -297,6 +374,9 @@ def compute_performance_profiles(submissions,
     verbosity: Debug level of information; choice of (1, 2, 3).
     ignore_heldouts: If True, ignore held-out workloads.
     use_qualification_set: If True, use only the qualification set workloads.
+    study_mode: int, "all" or `None`. If int, only consider one study per
+      workload. If "all", consider all studies per workload (instead of the
+      median). If `None` (default) consider the median across all studies.
 
   Returns:
     A DataFrame of performance profiles for the set of submissions given in
@@ -312,12 +392,14 @@ def compute_performance_profiles(submissions,
         f'{submission_tag}')
     # Get time to targets for each submission across studies and trials
     dfs.append(
-        get_workloads_time_to_target(submission,
-                                     submission_tag,
-                                     time_col,
-                                     verbosity,
-                                     self_tuning_ruleset,
-                                     strict))
+        get_workloads_time_to_target(
+            submission,
+            submission_tag,
+            time_col,
+            verbosity,
+            self_tuning_ruleset,
+            strict,
+            study_mode=study_mode))
   df = pd.concat(dfs)
 
   # Restrict to base and sampled held-out workloads
@@ -327,6 +409,9 @@ def compute_performance_profiles(submissions,
 
   # Sort workloads alphabetically (for better display)
   df = df.reindex(sorted(df.columns), axis=1)
+
+  if study_mode == "all":
+    df = expand_dataframe(df)
 
   # For each held-out workload set to inf if the base workload is inf or nan
   if not ignore_heldouts:
@@ -361,6 +446,9 @@ def compute_performance_profiles(submissions,
                 ~df.columns.str.startswith('fastmri')
                 & ~df.columns.str.startswith('imagenet')
                 & ~df.columns.str.startswith('librispeech')]
+
+  if study_mode == "all":
+    df = collapse_dataframe(df)
 
   if verbosity > 0:
     logging.info('\n`{time_col}` to reach target:')
