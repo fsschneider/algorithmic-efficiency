@@ -16,13 +16,11 @@ import operator
 import os
 import pickle
 
-from absl import app
-from absl import flags
-from absl import logging
 import numpy as np
 import pandas as pd
 import performance_profile
 import scoring_utils
+from absl import app, flags, logging
 from tabulate import tabulate
 
 flags.DEFINE_string(
@@ -62,6 +60,9 @@ flags.DEFINE_string(
     '',
     'Optional comma seperated list of names of submissions to exclude from scoring.'
 )
+flags.DEFINE_boolean('teams_structure',
+                     False,
+                     'Whether the logs are organized by teams.')
 FLAGS = flags.FLAGS
 
 
@@ -151,6 +152,15 @@ def compute_leaderboard_score(df, normalize=True):
   return pd.DataFrame(scores, columns=['score'], index=df.index)
 
 
+def process_submission_dir(base_dir, submission):
+  """Helper function to process a single submission directory."""
+  if submission in FLAGS.exclude_submissions.split(','):
+    return None
+  experiment_path = os.path.join(base_dir, submission)
+  df = scoring_utils.get_experiment_df(experiment_path)
+  return df
+
+
 def main(_):
   results = {}
   os.makedirs(FLAGS.output_dir, exist_ok=True)
@@ -162,22 +172,34 @@ def main(_):
         'rb') as f:
       results = pickle.load(f)
   else:
-    for team in os.listdir(FLAGS.submission_directory):
-      for submission in os.listdir(
-          os.path.join(FLAGS.submission_directory, team)):
-        print(submission)
-        if submission in FLAGS.exclude_submissions.split(','):
-          continue
-        experiment_path = os.path.join(FLAGS.submission_directory,
-                                       team,
-                                       submission)
-        df = scoring_utils.get_experiment_df(experiment_path)
-        results[submission] = df
-        summary_df = get_submission_summary(df)
-        with open(
-            os.path.join(FLAGS.output_dir, f'{submission}_summary.csv'),
-            'w') as fout:
-          summary_df.to_csv(fout)
+    if FLAGS.teams_structure:
+      # Original behavior if logs have a team structure,
+      # i.e. for the competition logs
+      for team in os.listdir(FLAGS.submission_directory):
+        team_path = os.path.join(FLAGS.submission_directory, team)
+        for submission in os.listdir(team_path):
+          print(f"Processing {team}/{submission}")
+          df = process_submission_dir(team_path, submission)
+          if df is not None:
+            results[submission] = df
+            summary_df = get_submission_summary(df)
+            with open(
+                os.path.join(FLAGS.output_dir, f'{submission}_summary.csv'),
+                'w') as fout:
+              summary_df.to_csv(fout)
+    else:
+      # Behavior if the logs have no team structure,
+      # i.e. for the logs in the rolling leaderboard
+      for submission in os.listdir(FLAGS.submission_directory):
+        print(f"Processing {submission}")
+        df = process_submission_dir(FLAGS.submission_directory, submission)
+        if df is not None:
+          results[submission] = df
+          summary_df = get_submission_summary(df)
+          with open(
+              os.path.join(FLAGS.output_dir, f'{submission}_summary.csv'),
+              'w') as fout:
+            summary_df.to_csv(fout)
 
     # Optionally save results to filename
     if FLAGS.save_results_to_filename:
