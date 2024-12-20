@@ -1,0 +1,103 @@
+###############################################################################
+#                      MLCommons Algorithmic Efficiency.                      #
+###############################################################################
+
+[project]
+name = "algoperf"
+dynamic = ["version"]
+description = "Codebase for the AlgoPerf: Training Algorithms benchmark"
+authors = [
+    { name = "MLCommons Algorithms Working Group", email = "algorithms@mlcommons.org" },
+]
+license = { text = "Apache 2.0" }
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = [
+    "algoperf",
+    "algorithmic-efficiency",
+    "machine-learning",
+    "deep-learning",
+    "optimization",
+    "benchmarking",
+    "training-methods",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "absl-py==1.4.0",
+    "networkx==3.1",
+    "docker==7.0.0",
+    "numpy>=1.23",
+    "pandas>=2.0.1",
+    "tensorflow==2.12.0",
+    "tensorflow-datasets==4.9.2",
+    "tensorflow-probability==0.20.0",
+    "tensorflow-addons==0.20.0",
+    "gputil==1.4.0",
+    "psutil==5.9.5",
+    "clu==0.0.7",
+    "matplotlib>=3.7.2",
+    "tabulate==0.9.0",
+]
+
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["algoperf"]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.dynamic]
+version = { attr = "algoperf.__version__" }
+
+## Optional Dependencies
+[project.optional-dependencies]
+dev = [
+    "ruff==0.8.4",
+    #     "isort==5.12.0",
+    #     "pylint==2.17.4",
+    #     "pytest==7.3.1",
+    #     "yapf==0.33.0",
+    #     "pre-commit==3.3.1",
+]
+
+criteo1tb = ["scikit-learn==1.2.2"]
+fastmri = ["h5py==3.8.0", "scikit-image==0.20.0"]
+ogbg = ["jraph==0.0.6.dev0", "scikit-learn==1.2.2"]
+librispeech_conformer = [
+    "sentencepiece==0.1.99",
+    "tensorflow-text==2.12.1",
+    "pydub==0.25.1",
+]
+wmt = ["sentencepiece==0.1.99", "tensorflow-text==2.12.1", "sacrebleu==1.3.1"]
+jax_core_deps = [
+    "flax==0.6.10",
+    "optax==0.1.5",
+    "chex==0.1.7",
+    "ml_dtypes==0.2.0",
+    "protobuf==4.25.3",
+]
+jax_cpu = ["jax==0.4.10", "jaxlib==0.4.10"]
+jax_gpu = ["jax==0.4.10", "jaxlib==0.4.10+cuda12.cudnn88"]
+pytorch_cpu = ["torch==2.1.0", "torchvision==0.16.0"]
+pytorch_gpu = ["torch==2.1.0", "torchvision==0.16.0"]
+wandb = ["wandb==0.16.5"]
+
+full = ["algoperf[criteo1tb,fastmri,ogbg,librispeech_conformer,wmt]"]
+full_dev = ["algoperf[full,dev]"]
+
+## Linting Configuration
+[tool.ruff]
+line-length = 80
+indent-width = 2

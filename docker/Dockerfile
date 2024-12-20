@@ -29,7 +29,7 @@ RUN mkdir -p data/
 RUN mkdir -p experiment_runs/
 
 # Install Algorithmic efficiency repo
-RUN echo "Setting up algorithmic_efficiency repo"
+RUN echo "Setting up algoperf repo"
 ARG branch="main"
 ARG framework="both"
 ARG git_url=https://github.com/mlcommons/algorithmic-efficiency.git
