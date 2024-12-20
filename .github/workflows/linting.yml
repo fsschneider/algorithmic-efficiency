@@ -3,7 +3,7 @@ name: Linting
 on: [push, pull_request]
 
 jobs:
-  pylint:
+  ruff-linting:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -11,19 +11,15 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
-    - name: Install pylint
+    - name: Install ruff
       run: |
         python -m pip install --upgrade pip
-        pip install pylint==2.16.1
-    - name: Run pylint
+        pip install ruff==0.8.4
+    - name: Run ruff linter
       run: |
-        pylint algoperf
-        pylint reference_algorithms
-        pylint prize_qualification_baselines
-        pylint submission_runner.py
-        pylint tests
+        ruff check
 
-  isort:
+  ruff-format:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -31,26 +27,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
-    - name: Install isort
+    - name: Install ruff
       run: |
         python -m pip install --upgrade pip
-        pip install isort
-    - name: Run isort
+        pip install ruff==0.8.4
+    - name: Run ruff formatter
       run: |
-        isort . --check --diff
-
-  yapf:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install yapf
-      run: |
-        python -m pip install --upgrade pip
-        pip install yapf==0.32
-    - name: Run yapf
-      run: |
-        yapf . --diff --recursive
+        ruff format --check
