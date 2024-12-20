@@ -81,13 +81,11 @@ jax_core_deps = [
     "ml_dtypes==0.2.0",
     "protobuf==4.25.3",
 ]
-jax_cpu = ["jax==0.4.10", "jaxlib==0.4.10", { extras = ["jax_core_deps"] }]
+jax_cpu = ["jax==0.4.10", "jaxlib==0.4.10", "algoperf[jax_core_deps]"]
 jax_gpu = [
     "jax==0.4.10",
     "jaxlib==0.4.10+cuda12.cudnn88",
-    { extras = [
-        "jax_core_deps",
-    ] },
+    "algoperf[jax_core_deps]",
 ]
 pytorch_cpu = ["torch==2.1.0", "torchvision==0.16.0"]
 pytorch_gpu = ["torch==2.1.0", "torchvision==0.16.0"]
