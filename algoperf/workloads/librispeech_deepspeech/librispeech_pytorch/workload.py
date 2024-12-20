@@ -3,17 +3,18 @@ from typing import Optional
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from algoperf import param_utils
-from algoperf import spec
+from algoperf import param_utils, spec
 from algoperf.pytorch_utils import pytorch_setup
-from algoperf.workloads.librispeech_conformer.librispeech_pytorch.models import \
-    initialize
-from algoperf.workloads.librispeech_conformer.librispeech_pytorch.workload import \
-    LibriSpeechConformerWorkload
-from algoperf.workloads.librispeech_deepspeech.librispeech_pytorch.models import \
-    DeepspeechConfig
-from algoperf.workloads.librispeech_deepspeech.librispeech_pytorch.models import \
-    DeepspeechEncoderDecoder
+from algoperf.workloads.librispeech_conformer.librispeech_pytorch.models import (
+  initialize,
+)
+from algoperf.workloads.librispeech_conformer.librispeech_pytorch.workload import (
+  LibriSpeechConformerWorkload,
+)
+from algoperf.workloads.librispeech_deepspeech.librispeech_pytorch.models import (
+  DeepspeechConfig,
+  DeepspeechEncoderDecoder,
+)
 
 USE_PYTORCH_DDP, RANK, DEVICE, N_GPUS = pytorch_setup()
 
@@ -21,12 +22,12 @@ MAX_INPUT_LENGTH = 320000
 
 
 class LibriSpeechDeepSpeechWorkload(LibriSpeechConformerWorkload):
-
   def init_model_fn(
-      self,
-      rng: spec.RandomState,
-      dropout_rate: Optional[float] = None,
-      aux_dropout_rate: Optional[float] = None) -> spec.ModelInitState:
+    self,
+    rng: spec.RandomState,
+    dropout_rate: Optional[float] = None,
+    aux_dropout_rate: Optional[float] = None,
+  ) -> spec.ModelInitState:
     """Deepspeech model init function.
 
     Here we use dropout_rate as feed_forward_dropout_rate, and aux_dropout_rate
@@ -34,16 +35,18 @@ class LibriSpeechDeepSpeechWorkload(LibriSpeechConformerWorkload):
     """
     torch.random.manual_seed(rng[0])
     model = DeepspeechEncoderDecoder(
-        DeepspeechConfig(
-            feed_forward_dropout_rate=dropout_rate,
-            use_specaug=self.use_specaug,
-            input_dropout_rate=aux_dropout_rate,
-            use_tanh=self.use_tanh,
-            enable_residual_connections=self.enable_residual_connections,
-            enable_decoder_layer_norm=self.enable_decoder_layer_norm,
-            layernorm_everywhere=self.layernorm_everywhere,
-            freq_mask_count=self.freq_mask_count,
-            time_mask_count=self.time_mask_count)).eval()
+      DeepspeechConfig(
+        feed_forward_dropout_rate=dropout_rate,
+        use_specaug=self.use_specaug,
+        input_dropout_rate=aux_dropout_rate,
+        use_tanh=self.use_tanh,
+        enable_residual_connections=self.enable_residual_connections,
+        enable_decoder_layer_norm=self.enable_decoder_layer_norm,
+        layernorm_everywhere=self.layernorm_everywhere,
+        freq_mask_count=self.freq_mask_count,
+        time_mask_count=self.time_mask_count,
+      )
+    ).eval()
     self.ctc_loss = torch.nn.CTCLoss(blank=0, reduction='none')
     # Run model once to initialize lazy layers.
     t = MAX_INPUT_LENGTH
@@ -109,7 +112,6 @@ class LibriSpeechDeepSpeechWorkload(LibriSpeechConformerWorkload):
 
 
 class LibriSpeechDeepSpeechTanhWorkload(LibriSpeechDeepSpeechWorkload):
-
   @property
   def use_tanh(self) -> bool:
     return True
@@ -124,7 +126,6 @@ class LibriSpeechDeepSpeechTanhWorkload(LibriSpeechDeepSpeechWorkload):
 
 
 class LibriSpeechDeepSpeechNoResNetWorkload(LibriSpeechDeepSpeechWorkload):
-
   @property
   def enable_residual_connections(self) -> bool:
     return False
@@ -138,9 +139,9 @@ class LibriSpeechDeepSpeechNoResNetWorkload(LibriSpeechDeepSpeechWorkload):
     return 0.079297
 
 
-class LibriSpeechDeepSpeechNormAndSpecAugWorkload(LibriSpeechDeepSpeechWorkload
-                                                 ):
-
+class LibriSpeechDeepSpeechNormAndSpecAugWorkload(
+  LibriSpeechDeepSpeechWorkload
+):
   @property
   def eval_batch_size(self) -> int:
     return 128

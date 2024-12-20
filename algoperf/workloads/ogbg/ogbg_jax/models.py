@@ -2,13 +2,12 @@
 # https://github.com/google/init2winit/blob/master/init2winit/model_lib/gnn.py.
 from typing import Optional, Tuple
 
-from flax import linen as nn
 import jax.numpy as jnp
 import jraph
+from flax import linen as nn
 
 
 def _make_embed(latent_dim, name):
-
   def make_fn(inputs):
     return nn.Dense(features=latent_dim, name=name)(inputs)
 
@@ -36,6 +35,7 @@ class GNN(nn.Module):
   The model assumes the input data is a jraph.GraphsTuple without global
   variables. The final prediction will be encoded in the globals.
   """
+
   num_outputs: int
   latent_dim: int = 256
   hidden_dims: Tuple[int] = (256,)
@@ -53,11 +53,13 @@ class GNN(nn.Module):
     dropout = nn.Dropout(rate=dropout_rate, deterministic=not train)
 
     graph = graph._replace(
-        globals=jnp.zeros([graph.n_node.shape[0], self.num_outputs]))
+      globals=jnp.zeros([graph.n_node.shape[0], self.num_outputs])
+    )
 
     embedder = jraph.GraphMapFeatures(
-        embed_node_fn=_make_embed(self.latent_dim, name='node_embedding'),
-        embed_edge_fn=_make_embed(self.latent_dim, name='edge_embedding'))
+      embed_node_fn=_make_embed(self.latent_dim, name='node_embedding'),
+      embed_edge_fn=_make_embed(self.latent_dim, name='edge_embedding'),
+    )
     graph = embedder(graph)
 
     if self.activation_fn_name == 'relu':
@@ -68,16 +70,21 @@ class GNN(nn.Module):
       activation_fn = nn.silu
     else:
       raise ValueError(
-          f'Invalid activation function name: {self.activation_fn_name}')
+        f'Invalid activation function name: {self.activation_fn_name}'
+      )
 
     for _ in range(self.num_message_passing_steps):
       net = jraph.GraphNetwork(
-          update_edge_fn=_make_mlp(
-              self.hidden_dims, dropout=dropout, activation_fn=activation_fn),
-          update_node_fn=_make_mlp(
-              self.hidden_dims, dropout=dropout, activation_fn=activation_fn),
-          update_global_fn=_make_mlp(
-              self.hidden_dims, dropout=dropout, activation_fn=activation_fn))
+        update_edge_fn=_make_mlp(
+          self.hidden_dims, dropout=dropout, activation_fn=activation_fn
+        ),
+        update_node_fn=_make_mlp(
+          self.hidden_dims, dropout=dropout, activation_fn=activation_fn
+        ),
+        update_global_fn=_make_mlp(
+          self.hidden_dims, dropout=dropout, activation_fn=activation_fn
+        ),
+      )
 
       graph = net(graph)
 

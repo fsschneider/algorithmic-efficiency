@@ -2,25 +2,28 @@
 https://github.com/google/init2winit/blob/master/init2winit/model_lib/conformer.py.
 """
 
+import math
 from dataclasses import dataclass
 from functools import partial
-import math
 from typing import Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.nn import init
-import torch.nn.functional as F
 
-from algoperf.workloads.librispeech_conformer.librispeech_pytorch import \
-    preprocessor
-from algoperf.workloads.librispeech_conformer.librispeech_pytorch.spectrum_augmenter import \
-    SpecAug
+from algoperf.workloads.librispeech_conformer.librispeech_pytorch import (
+  preprocessor,
+)
+from algoperf.workloads.librispeech_conformer.librispeech_pytorch.spectrum_augmenter import (
+  SpecAug,
+)
 
 
 @dataclass
 class ConformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
+
   vocab_size: int = 1024
   encoder_dim: int = 512
   num_attention_heads: int = 8
@@ -60,7 +63,6 @@ def initialize(m):
 
 
 class LayerNorm(nn.Module):
-
   def __init__(self, dim, epsilon=1e-6):
     super().__init__()
     self.dim = dim
@@ -74,24 +76,28 @@ class LayerNorm(nn.Module):
 
 
 class Subsample(nn.Module):
-
-  def __init__(self,
-               encoder_dim: int = 0,
-               input_dropout_rate: float = 0.0,
-               num_bins: int = 80):
+  def __init__(
+    self,
+    encoder_dim: int = 0,
+    input_dropout_rate: float = 0.0,
+    num_bins: int = 80,
+  ):
     super().__init__()
     self.encoder_dim = encoder_dim
     self.input_dropout_rate = input_dropout_rate
 
     self.conv1 = Conv2dSubsampling(
-        input_channels=1, output_channels=encoder_dim)
+      input_channels=1, output_channels=encoder_dim
+    )
     self.conv2 = Conv2dSubsampling(
-        input_channels=encoder_dim, output_channels=encoder_dim)
+      input_channels=encoder_dim, output_channels=encoder_dim
+    )
 
     self.linear = nn.Linear(
-        in_features=self.encoder_dim * num_bins // 4,
-        out_features=self.encoder_dim,
-        bias=True)
+      in_features=self.encoder_dim * num_bins // 4,
+      out_features=self.encoder_dim,
+      bias=True,
+    )
     self.pos_encode = AddPositionalEmbedding(embedding_dim=self.encoder_dim)
     self.dropout = nn.Dropout(p=self.input_dropout_rate, inplace=True)
 
@@ -103,9 +109,9 @@ class Subsample(nn.Module):
     outputs, output_paddings = self.conv2(outputs, output_paddings)
 
     batch_size, channels, subsampled_lengths, subsampled_dims = outputs.shape
-    outputs = outputs.permute(0, 2, 3, 1).reshape(batch_size,
-                                                  subsampled_lengths,
-                                                  subsampled_dims * channels)
+    outputs = outputs.permute(0, 2, 3, 1).reshape(
+      batch_size, subsampled_lengths, subsampled_dims * channels
+    )
 
     outputs = self.linear(outputs)
     outputs = outputs + self.pos_encode(seq_length=outputs.shape[1])
@@ -115,12 +121,13 @@ class Subsample(nn.Module):
 
 
 class Conv2dSubsampling(nn.Module):
-
-  def __init__(self,
-               input_channels: int,
-               output_channels: int,
-               filter_stride: Tuple[int] = (2, 2),
-               padding: str = 'SAME'):
+  def __init__(
+    self,
+    input_channels: int,
+    output_channels: int,
+    filter_stride: Tuple[int] = (2, 2),
+    padding: str = 'SAME',
+  ):
     super().__init__()
 
     self.input_channels = input_channels
@@ -131,7 +138,8 @@ class Conv2dSubsampling(nn.Module):
     self.filter_shape = (output_channels, input_channels, 3, 3)
 
     self.kernel = nn.Parameter(
-        torch.nn.init.xavier_uniform_(torch.empty(*self.filter_shape)))
+      torch.nn.init.xavier_uniform_(torch.empty(*self.filter_shape))
+    )
     self.bias = nn.Parameter(torch.zeros(output_channels))
     self.register_buffer('paddings_kernel', torch.ones([1, 1, 1]))
 
@@ -161,12 +169,13 @@ class Conv2dSubsampling(nn.Module):
     else:
       in_ = inputs
     outputs = F.conv2d(
-        input=in_,
-        weight=self.kernel,
-        bias=self.bias,
-        stride=self.filter_stride,
-        dilation=(1, 1),
-        groups=groups)
+      input=in_,
+      weight=self.kernel,
+      bias=self.bias,
+      stride=self.filter_stride,
+      dilation=(1, 1),
+      groups=groups,
+    )
 
     outputs = F.relu(outputs)
 
@@ -174,40 +183,45 @@ class Conv2dSubsampling(nn.Module):
     stride = self.filter_stride[0]
     pad_len = (input_length + stride - 1) // stride * stride - input_length
     padded_paddings = F.pad(
-        paddings[:, None, :], (0, pad_len), mode='constant', value=0)
+      paddings[:, None, :], (0, pad_len), mode='constant', value=0
+    )
     out_padding = F.conv1d(
-        input=padded_paddings,
-        weight=self.paddings_kernel,
-        stride=self.filter_stride[:1])
+      input=padded_paddings,
+      weight=self.paddings_kernel,
+      stride=self.filter_stride[:1],
+    )
     out_padding = out_padding.squeeze(dim=1)
     outputs = outputs * (1 - out_padding[:, None, :, None])
     return outputs, out_padding
 
 
 class FeedForwardModule(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
     self.config = config
 
     self.ln = LayerNorm(dim=config.encoder_dim)
     self.linear1 = nn.Linear(
-        in_features=config.encoder_dim,
-        out_features=config.encoder_dim * config.feed_forward_expansion_factor,
-        bias=True)
+      in_features=config.encoder_dim,
+      out_features=config.encoder_dim * config.feed_forward_expansion_factor,
+      bias=True,
+    )
     self.dropout1 = nn.Dropout(p=config.feed_forward_dropout_rate, inplace=True)
     self.linear2 = nn.Linear(
-        in_features=config.encoder_dim * config.feed_forward_expansion_factor,
-        out_features=config.encoder_dim,
-        bias=True)
+      in_features=config.encoder_dim * config.feed_forward_expansion_factor,
+      out_features=config.encoder_dim,
+      bias=True,
+    )
 
     if config.feed_forward_residual_dropout_rate is None:
       feed_forward_residual_dropout_rate = 0.1
     else:
       feed_forward_residual_dropout_rate = (
-          config.feed_forward_residual_dropout_rate)
+        config.feed_forward_residual_dropout_rate
+      )
     self.dropout2 = nn.Dropout(
-        p=feed_forward_residual_dropout_rate, inplace=True)
+      p=feed_forward_residual_dropout_rate, inplace=True
+    )
 
   def forward(self, inputs, padding_mask):
     inputs = self.ln(inputs)
@@ -218,9 +232,11 @@ class FeedForwardModule(nn.Module):
       # Use tanh approximation of GELU which is default for jax
       activation_fn = partial(F.gelu, approximate='tanh')
     else:
-      raise ValueError('Only "swish" and "gelu" are supported '
-                       'config.activation_function_name values, recieved '
-                       f'{self.config.activation_function_name}')
+      raise ValueError(
+        'Only "swish" and "gelu" are supported '
+        'config.activation_function_name values, recieved '
+        f'{self.config.activation_function_name}'
+      )
     inputs = activation_fn(inputs)
     inputs = self.dropout1(inputs)
     inputs = inputs * padding_mask
@@ -232,37 +248,40 @@ class FeedForwardModule(nn.Module):
 
 
 class AddPositionalEmbedding(nn.Module):
-
-  def __init__(self,
-               min_timescale: int = 1,
-               max_timescale: int = 10_000,
-               embedding_dim: int = 512):
+  def __init__(
+    self,
+    min_timescale: int = 1,
+    max_timescale: int = 10_000,
+    embedding_dim: int = 512,
+  ):
     super().__init__()
     self.min_timescale = min_timescale
     self.max_timescale = max_timescale
     self.embedding_dim = embedding_dim
     num_timescales = self.embedding_dim // 2
     log_timescale_increment = math.log(
-        float(self.max_timescale) / float(self.min_timescale)) / (
-            num_timescales - 1)
-    inv_timescales = self.min_timescale * \
-        torch.exp(torch.arange(num_timescales, dtype=torch.float32)
-                  * -log_timescale_increment)
+      float(self.max_timescale) / float(self.min_timescale)
+    ) / (num_timescales - 1)
+    inv_timescales = self.min_timescale * torch.exp(
+      torch.arange(num_timescales, dtype=torch.float32)
+      * -log_timescale_increment
+    )
     self.register_buffer('inv_timescales', inv_timescales[None, None, :])
 
   def forward(self, seq_length):
     position = torch.arange(
-        end=seq_length, dtype=torch.float32, device=self.inv_timescales.device)
+      end=seq_length, dtype=torch.float32, device=self.inv_timescales.device
+    )
     scaled_time = position[None, :, None] * self.inv_timescales
     signal = torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=2)
     if self.embedding_dim % 2:
       signal = torch.cat(
-          [signal, torch.zeros(signal.shape[0], signal.shape[1], 1)], dim=2)
+        [signal, torch.zeros(signal.shape[0], signal.shape[1], 1)], dim=2
+      )
     return signal
 
 
 class QueryScaler(nn.Module):
-
   def __init__(self, dim):
     super().__init__()
     self.dim = dim
@@ -275,7 +294,6 @@ class QueryScaler(nn.Module):
 
 
 class MHSAwithQS(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
     self.embed_dim = config.encoder_dim
@@ -292,20 +310,23 @@ class MHSAwithQS(nn.Module):
     q = self.qs(q.view(batch_size, seq_len, self.num_heads, -1)).transpose(1, 2)
     k = k.view(batch_size, seq_len, self.num_heads, -1).transpose(1, 2)
     v = v.view(batch_size, seq_len, self.num_heads, -1).transpose(1, 2)
-    out = F.scaled_dot_product_attention(
+    out = (
+      F.scaled_dot_product_attention(
         query=q,
         key=k,
         value=v,
         attn_mask=~key_padding_mask[:, None, None],
         dropout_p=self.dropout,
-    ).transpose(1, 2).reshape(batch_size, seq_len, embed_dim)
+      )
+      .transpose(1, 2)
+      .reshape(batch_size, seq_len, embed_dim)
+    )
     out = out * self.attention_temperature
     out = self.out_proj(out)
     return out
 
 
 class MultiHeadedSelfAttention(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
 
@@ -322,15 +343,14 @@ class MultiHeadedSelfAttention(nn.Module):
   def forward(self, outputs, paddings):
     outputs = self.ln(outputs)
     outputs = self.self_attention(
-        outputs,
-        key_padding_mask=paddings == 1,
+      outputs,
+      key_padding_mask=paddings == 1,
     )
     outputs = self.dropout(outputs)
     return outputs
 
 
 class BatchNorm(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
     running_mean = torch.zeros(config.encoder_dim)
@@ -345,8 +365,8 @@ class BatchNorm(nn.Module):
     self.epsilon = config.batch_norm_epsilon
 
   def forward(self, inputs, input_paddings):
-    #inputs: NHD
-    #padding: NH
+    # inputs: NHD
+    # padding: NH
     """
     Alternatively:
     inputs[input_paddings==0] = F.batch_norm(
@@ -370,9 +390,11 @@ class BatchNorm(nn.Module):
       var = (torch.square(masked_inp - mean) * mask).sum(dim=(0, 1)) / count
 
       self.running_mean = (1 - self.momentum) * self.running_mean + (
-          self.momentum) * mean.detach()
+        self.momentum
+      ) * mean.detach()
       self.running_var = (1 - self.momentum) * self.running_var + (
-          self.momentum) * var.detach()
+        self.momentum
+      ) * var.detach()
 
     else:
       mean = self.running_mean
@@ -384,25 +406,27 @@ class BatchNorm(nn.Module):
 
 
 class ConvolutionBlock(nn.Module):
-
   def __init__(self, config):
     super().__init__()
 
     self.config = config
     self.ln = LayerNorm(dim=config.encoder_dim)
     self.lin1 = nn.Linear(
-        in_features=config.encoder_dim, out_features=config.encoder_dim)
+      in_features=config.encoder_dim, out_features=config.encoder_dim
+    )
     self.lin2 = nn.Linear(
-        in_features=config.encoder_dim, out_features=config.encoder_dim)
+      in_features=config.encoder_dim, out_features=config.encoder_dim
+    )
 
     self.conv1 = nn.Conv1d(
-        in_channels=config.encoder_dim,
-        out_channels=config.encoder_dim,
-        kernel_size=(config.convolution_kernel_size,),
-        stride=(1,),
-        padding='same',
-        bias=False,
-        groups=config.encoder_dim)
+      in_channels=config.encoder_dim,
+      out_channels=config.encoder_dim,
+      kernel_size=(config.convolution_kernel_size,),
+      stride=(1,),
+      padding='same',
+      bias=False,
+      groups=config.encoder_dim,
+    )
     self.bn = BatchNorm(config)
     self.lin3 = nn.Linear(config.encoder_dim, config.encoder_dim)
     if config.conv_residual_dropout_rate is None:
@@ -427,9 +451,11 @@ class ConvolutionBlock(nn.Module):
     elif self.config.activation_function_name == 'gelu':
       activation_fn = F.gelu
     else:
-      raise ValueError('Only "swish" and "gelu" are supported '
-                       'config.activation_function_name values, recieved '
-                       f'{self.config.activation_function_name}')
+      raise ValueError(
+        'Only "swish" and "gelu" are supported '
+        'config.activation_function_name values, recieved '
+        f'{self.config.activation_function_name}'
+      )
     inputs = activation_fn(inputs)
     inputs = self.lin3(inputs)
 
@@ -438,7 +464,6 @@ class ConvolutionBlock(nn.Module):
 
 
 class ConformerBlock(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
 
@@ -462,34 +487,36 @@ class ConformerBlock(nn.Module):
 
 
 class ConformerEncoderDecoder(nn.Module):
-
   def __init__(self, config: ConformerConfig):
     super().__init__()
     self.config = config
     preprocessing_config = preprocessor.PreprocessorConfig()
     self.preprocessor = preprocessor.MelFilterbankFrontend(
-        preprocessing_config,
-        per_bin_mean=preprocessor.LIBRISPEECH_MEAN_VECTOR,
-        per_bin_stddev=preprocessor.LIBRISPEECH_STD_VECTOR)
+      preprocessing_config,
+      per_bin_mean=preprocessor.LIBRISPEECH_MEAN_VECTOR,
+      per_bin_stddev=preprocessor.LIBRISPEECH_STD_VECTOR,
+    )
     self.specaug = SpecAug(
-        freq_mask_count=config.freq_mask_count,
-        freq_mask_max_bins=config.freq_mask_max_bins,
-        time_mask_count=config.time_mask_count,
-        time_mask_max_frames=config.time_mask_max_frames,
-        time_mask_max_ratio=config.time_mask_max_ratio,
-        time_masks_per_frame=config.time_masks_per_frame,
-        use_dynamic_time_mask_max_frames=config.use_dynamic_time_mask_max_frames
+      freq_mask_count=config.freq_mask_count,
+      freq_mask_max_bins=config.freq_mask_max_bins,
+      time_mask_count=config.time_mask_count,
+      time_mask_max_frames=config.time_mask_max_frames,
+      time_mask_max_ratio=config.time_mask_max_ratio,
+      time_masks_per_frame=config.time_masks_per_frame,
+      use_dynamic_time_mask_max_frames=config.use_dynamic_time_mask_max_frames,
     )
     if config.input_dropout_rate is None:
       input_dropout_rate = 0.1
     else:
       input_dropout_rate = config.input_dropout_rate
     self.subsample = Subsample(
-        encoder_dim=config.encoder_dim,
-        input_dropout_rate=input_dropout_rate,
-        num_bins=preprocessing_config.num_bins)
+      encoder_dim=config.encoder_dim,
+      input_dropout_rate=input_dropout_rate,
+      num_bins=preprocessing_config.num_bins,
+    )
     self.conformers = nn.ModuleList(
-        [ConformerBlock(config) for _ in range(config.num_encoder_layers)])
+      [ConformerBlock(config) for _ in range(config.num_encoder_layers)]
+    )
 
     self.ln = LayerNorm(config.encoder_dim)
     self.lin = nn.Linear(config.encoder_dim, config.vocab_size)

@@ -1,10 +1,10 @@
 from itertools import zip_longest
 from typing import Sequence
 
-from absl import logging
 import sacrebleu
 import torch
 import torch.distributed as dist
+from absl import logging
 
 from algoperf.pytorch_utils import pytorch_setup
 
@@ -14,14 +14,16 @@ USE_PYTORCH_DDP, _, DEVICE, N_GPUS = pytorch_setup()
 # Modified (added sync for PyTorch DDP) from
 # https://github.com/mjpost/sacrebleu/blob/v1.3.1/sacrebleu.py.
 # Assumes that sacrebleu==1.3.1 is installed.
-def corpus_bleu(sys_stream: Sequence[str],
-                ref_streams: Sequence[str],
-                smooth_method: str = 'exp',
-                smooth_value: float = 0.0,
-                force: bool = False,
-                lowercase: bool = False,
-                tokenize: str = '13a',
-                use_effective_order: bool = False) -> sacrebleu.BLEU:
+def corpus_bleu(
+  sys_stream: Sequence[str],
+  ref_streams: Sequence[str],
+  smooth_method: str = 'exp',
+  smooth_value: float = 0.0,
+  force: bool = False,
+  lowercase: bool = False,
+  tokenize: str = '13a',
+  use_effective_order: bool = False,
+) -> sacrebleu.BLEU:
   """Produces BLEU scores along with its sufficient statistics from a source
   against one or more references.
       :param sys_stream: The system stream (a sequence of segments).
@@ -62,13 +64,16 @@ def corpus_bleu(sys_stream: Sequence[str],
       tokenized_count += 1
 
       if tokenized_count == 100:
+        logging.warning("That's 100 lines that end in a tokenized period ('.')")
         logging.warning(
-            'That\'s 100 lines that end in a tokenized period (\'.\')')
-        logging.warning('It looks like you forgot to detokenize your test '
-                        'data, which may hurt your score.')
-        logging.warning('If you insist your data is detokenized, '
-                        'or don\'t care, you can suppress this message with '
-                        '\'--force\'.')
+          'It looks like you forgot to detokenize your test '
+          'data, which may hurt your score.'
+        )
+        logging.warning(
+          'If you insist your data is detokenized, '
+          "or don't care, you can suppress this message with "
+          "'--force'."
+        )
 
     output, *refs = [sacrebleu.TOKENIZERS[tokenize](x.rstrip()) for x in lines]
 
@@ -101,10 +106,11 @@ def corpus_bleu(sys_stream: Sequence[str],
     total = total.cpu().numpy().tolist()
 
   return sacrebleu.compute_bleu(
-      correct,
-      total,
-      sys_len,
-      ref_len,
-      smooth_method=smooth_method,
-      smooth_value=smooth_value,
-      use_effective_order=use_effective_order)
+    correct,
+    total,
+    sys_len,
+    ref_len,
+    smooth_method=smooth_method,
+    smooth_value=smooth_value,
+    use_effective_order=use_effective_order,
+  )

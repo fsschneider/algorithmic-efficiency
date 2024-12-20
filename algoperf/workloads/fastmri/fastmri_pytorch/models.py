@@ -8,8 +8,7 @@ from functools import partial
 from typing import Optional
 
 import torch
-from torch import nn
-from torch import Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
 
 from algoperf import init_utils
@@ -17,19 +16,21 @@ from algoperf import init_utils
 
 class UNet(nn.Module):
   r"""U-Net model from
-    `"U-net: Convolutional networks
-    for biomedical image segmentation"
-    <hhttps://arxiv.org/pdf/1505.04597.pdf>`_.
-    """
+  `"U-net: Convolutional networks
+  for biomedical image segmentation"
+  <hhttps://arxiv.org/pdf/1505.04597.pdf>`_.
+  """
 
-  def __init__(self,
-               in_chans: int = 1,
-               out_chans: int = 1,
-               num_channels: int = 32,
-               num_pool_layers: int = 4,
-               dropout_rate: Optional[float] = 0.0,
-               use_tanh: bool = False,
-               use_layer_norm: bool = False) -> None:
+  def __init__(
+    self,
+    in_chans: int = 1,
+    out_chans: int = 1,
+    num_channels: int = 32,
+    num_pool_layers: int = 4,
+    dropout_rate: Optional[float] = 0.0,
+    use_tanh: bool = False,
+    use_layer_norm: bool = False,
+  ) -> None:
     super().__init__()
 
     self.in_chans = in_chans
@@ -38,17 +39,18 @@ class UNet(nn.Module):
     self.num_pool_layers = num_pool_layers
     if dropout_rate is None:
       dropout_rate = 0.0
-    self.down_sample_layers = nn.ModuleList([
-        ConvBlock(in_chans,
-                  num_channels,
-                  dropout_rate,
-                  use_tanh,
-                  use_layer_norm)
-    ])
+    self.down_sample_layers = nn.ModuleList(
+      [
+        ConvBlock(
+          in_chans, num_channels, dropout_rate, use_tanh, use_layer_norm
+        )
+      ]
+    )
     ch = num_channels
     for _ in range(num_pool_layers - 1):
       self.down_sample_layers.append(
-          ConvBlock(ch, ch * 2, dropout_rate, use_tanh, use_layer_norm))
+        ConvBlock(ch, ch * 2, dropout_rate, use_tanh, use_layer_norm)
+      )
       ch *= 2
     self.conv = ConvBlock(ch, ch * 2, dropout_rate, use_tanh, use_layer_norm)
 
@@ -57,18 +59,22 @@ class UNet(nn.Module):
 
     for _ in range(num_pool_layers - 1):
       self.up_transpose_conv.append(
-          TransposeConvBlock(ch * 2, ch, use_tanh, use_layer_norm))
+        TransposeConvBlock(ch * 2, ch, use_tanh, use_layer_norm)
+      )
       self.up_conv.append(
-          ConvBlock(ch * 2, ch, dropout_rate, use_tanh, use_layer_norm))
+        ConvBlock(ch * 2, ch, dropout_rate, use_tanh, use_layer_norm)
+      )
       ch //= 2
 
     self.up_transpose_conv.append(
-        TransposeConvBlock(ch * 2, ch, use_tanh, use_layer_norm))
+      TransposeConvBlock(ch * 2, ch, use_tanh, use_layer_norm)
+    )
     self.up_conv.append(
-        nn.Sequential(
-            ConvBlock(ch * 2, ch, dropout_rate, use_tanh, use_layer_norm),
-            nn.Conv2d(ch, self.out_chans, kernel_size=1, stride=1),
-        ))
+      nn.Sequential(
+        ConvBlock(ch * 2, ch, dropout_rate, use_tanh, use_layer_norm),
+        nn.Conv2d(ch, self.out_chans, kernel_size=1, stride=1),
+      )
+    )
 
     for m in self.modules():
       if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
@@ -99,7 +105,7 @@ class UNet(nn.Module):
       if output.shape[-2] != downsample_layer.shape[-2]:
         padding[3] = 1  # padding bottom
       if torch.sum(torch.tensor(padding)) != 0:
-        output = F.pad(output, padding, "reflect")
+        output = F.pad(output, padding, 'reflect')
 
       output = torch.cat([output, downsample_layer], dim=1)
       output = conv(output)
@@ -111,12 +117,14 @@ class ConvBlock(nn.Module):
   # A Convolutional Block that consists of two convolution layers each
   # followed by instance normalization, LeakyReLU activation and dropout_rate.
 
-  def __init__(self,
-               in_chans: int,
-               out_chans: int,
-               dropout_rate: float,
-               use_tanh: bool,
-               use_layer_norm: bool) -> None:
+  def __init__(
+    self,
+    in_chans: int,
+    out_chans: int,
+    dropout_rate: float,
+    use_tanh: bool,
+    use_layer_norm: bool,
+  ) -> None:
     super().__init__()
 
     if use_layer_norm:
@@ -128,14 +136,14 @@ class ConvBlock(nn.Module):
     else:
       activation_fn = nn.LeakyReLU(negative_slope=0.2, inplace=True)
     self.conv_layers = nn.Sequential(
-        nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1, bias=False),
-        norm_layer(out_chans),
-        activation_fn,
-        nn.Dropout2d(dropout_rate),
-        nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1, bias=False),
-        norm_layer(out_chans),
-        activation_fn,
-        nn.Dropout2d(dropout_rate),
+      nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1, bias=False),
+      norm_layer(out_chans),
+      activation_fn,
+      nn.Dropout2d(dropout_rate),
+      nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1, bias=False),
+      norm_layer(out_chans),
+      activation_fn,
+      nn.Dropout2d(dropout_rate),
     )
 
   def forward(self, x: Tensor) -> Tensor:
@@ -147,11 +155,11 @@ class TransposeConvBlock(nn.Module):
   # layers followed by instance normalization and LeakyReLU activation.
 
   def __init__(
-      self,
-      in_chans: int,
-      out_chans: int,
-      use_tanh: bool,
-      use_layer_norm: bool,
+    self,
+    in_chans: int,
+    out_chans: int,
+    use_tanh: bool,
+    use_layer_norm: bool,
   ):
     super().__init__()
     if use_tanh:
@@ -159,10 +167,11 @@ class TransposeConvBlock(nn.Module):
     else:
       activation_fn = nn.LeakyReLU(negative_slope=0.2, inplace=True)
     self.layers = nn.Sequential(
-        nn.ConvTranspose2d(
-            in_chans, out_chans, kernel_size=2, stride=2, bias=False),
-        nn.InstanceNorm2d(out_chans),
-        activation_fn,
+      nn.ConvTranspose2d(
+        in_chans, out_chans, kernel_size=2, stride=2, bias=False
+      ),
+      nn.InstanceNorm2d(out_chans),
+      activation_fn,
     )
 
   def forward(self, x: Tensor) -> Tensor:

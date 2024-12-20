@@ -9,26 +9,27 @@ import math
 from typing import Any, Optional, Tuple, Union
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
-from algoperf import init_utils
-from algoperf import spec
-from algoperf.workloads.wmt.wmt_pytorch.models import \
-    MultiheadAttention
+from algoperf import init_utils, spec
+from algoperf.workloads.wmt.wmt_pytorch.models import MultiheadAttention
 
 
-def posemb_sincos_2d(patches: spec.Tensor, temperature=10_000.) -> spec.Tensor:
+def posemb_sincos_2d(patches: spec.Tensor, temperature=10_000.0) -> spec.Tensor:
   """Follows the MoCo v3 logic."""
   _, width, h, w = patches.shape
   device = patches.device
-  y, x = torch.meshgrid(torch.arange(h, device=device),
-                        torch.arange(w, device=device), indexing='ij')
+  y, x = torch.meshgrid(
+    torch.arange(h, device=device),
+    torch.arange(w, device=device),
+    indexing='ij',
+  )
 
   if width % 4 != 0:
     raise ValueError('Width must be mult of 4 for sincos posemb.')
   omega = torch.arange(width // 4, device=device) / (width // 4 - 1)
-  omega = 1. / (temperature**omega)
+  omega = 1.0 / (temperature**omega)
   y = y.flatten()[:, None] * omega[None, :]
   x = x.flatten()[:, None] * omega[None, :]
   pe = torch.cat((x.sin(), x.cos(), y.sin(), y.cos()), dim=1)
@@ -39,11 +40,12 @@ class MlpBlock(nn.Module):
   """Transformer MLP / feed-forward block."""
 
   def __init__(
-      self,
-      width: int,
-      mlp_dim: Optional[int] = None,  # Defaults to 4x input dim.
-      use_glu: bool = False,
-      dropout_rate: float = 0.0) -> None:
+    self,
+    width: int,
+    mlp_dim: Optional[int] = None,  # Defaults to 4x input dim.
+    use_glu: bool = False,
+    dropout_rate: float = 0.0,
+  ) -> None:
     super().__init__()
 
     self.width = width
@@ -87,17 +89,17 @@ class MlpBlock(nn.Module):
 class SelfAttention(nn.Module):
   """Self-attention special case of multi-head dot-product attention."""
 
-  def __init__(self,
-               width: int,
-               num_heads: int = 8,
-               dropout_rate: float = 0.0) -> None:
+  def __init__(
+    self, width: int, num_heads: int = 8, dropout_rate: float = 0.0
+  ) -> None:
     super().__init__()
 
     self.width = width
     self.num_heads = num_heads
 
-    assert width % num_heads == 0, (
-        'Memory dimension must be divisible by number of heads.')
+    assert (
+      width % num_heads == 0
+    ), 'Memory dimension must be divisible by number of heads.'
 
     self.head_dim = int(width / num_heads)
     self.all_head_dim = self.num_heads * self.head_dim
@@ -114,7 +116,7 @@ class SelfAttention(nn.Module):
       if isinstance(module, nn.Linear):
         nn.init.xavier_uniform_(module.weight.data)
         if module.bias is not None:
-          nn.init.constant_(module.bias.data, 0.)
+          nn.init.constant_(module.bias.data, 0.0)
 
   def transpose_for_scores(self, x: spec.Tensor) -> spec.Tensor:
     new_x_shape = x.size()[:-1] + (self.num_heads, self.head_dim)
@@ -145,13 +147,15 @@ class SelfAttention(nn.Module):
 class Encoder1DBlock(nn.Module):
   """Single transformer encoder block (MHSA + MLP)."""
 
-  def __init__(self,
-               width: int,
-               mlp_dim: Optional[int] = None,
-               num_heads: int = 12,
-               use_glu: bool = False,
-               use_post_layer_norm: bool = False,
-               dropout_rate: float = 0.0) -> None:
+  def __init__(
+    self,
+    width: int,
+    mlp_dim: Optional[int] = None,
+    num_heads: int = 12,
+    use_glu: bool = False,
+    use_post_layer_norm: bool = False,
+    dropout_rate: float = 0.0,
+  ) -> None:
     super().__init__()
 
     self.width = width
@@ -165,10 +169,11 @@ class Encoder1DBlock(nn.Module):
     self.dropout = nn.Dropout(dropout_rate)
     self.layer_norm2 = nn.LayerNorm(self.width, eps=1e-6)
     self.mlp3 = MlpBlock(
-        width=self.width,
-        mlp_dim=self.mlp_dim,
-        use_glu=self.use_glu,
-        dropout_rate=dropout_rate)
+      width=self.width,
+      mlp_dim=self.mlp_dim,
+      use_glu=self.use_glu,
+      dropout_rate=dropout_rate,
+    )
 
   def forward(self, x: spec.Tensor) -> spec.Tensor:
     if not self.use_post_layer_norm:
@@ -199,14 +204,16 @@ class Encoder1DBlock(nn.Module):
 class Encoder(nn.Module):
   """Transformer Model Encoder for sequence to sequence translation."""
 
-  def __init__(self,
-               depth: int,
-               width: int,
-               mlp_dim: Optional[int] = None,
-               num_heads: int = 12,
-               use_glu: bool = False,
-               use_post_layer_norm: bool = False,
-               dropout_rate: float = 0.0) -> None:
+  def __init__(
+    self,
+    depth: int,
+    width: int,
+    mlp_dim: Optional[int] = None,
+    num_heads: int = 12,
+    use_glu: bool = False,
+    use_post_layer_norm: bool = False,
+    dropout_rate: float = 0.0,
+  ) -> None:
     super().__init__()
 
     self.depth = depth
@@ -216,14 +223,19 @@ class Encoder(nn.Module):
     self.use_glu = use_glu
     self.use_post_layer_norm = use_post_layer_norm
 
-    self.net = nn.ModuleList([
-        Encoder1DBlock(self.width,
-                       self.mlp_dim,
-                       self.num_heads,
-                       self.use_glu,
-                       self.use_post_layer_norm,
-                       dropout_rate) for _ in range(depth)
-    ])
+    self.net = nn.ModuleList(
+      [
+        Encoder1DBlock(
+          self.width,
+          self.mlp_dim,
+          self.num_heads,
+          self.use_glu,
+          self.use_post_layer_norm,
+          dropout_rate,
+        )
+        for _ in range(depth)
+      ]
+    )
 
     if not self.use_post_layer_norm:
       self.encoder_norm = nn.LayerNorm(self.width, eps=1e-6)
@@ -243,10 +255,9 @@ class Encoder(nn.Module):
 class MAPHead(nn.Module):
   """Multihead Attention Pooling."""
 
-  def __init__(self,
-               width: int,
-               mlp_dim: Optional[int] = None,
-               num_heads: int = 12):
+  def __init__(
+    self, width: int, mlp_dim: Optional[int] = None, num_heads: int = 12
+  ):
     super().__init__()
     self.width = width
     self.mlp_dim = mlp_dim
@@ -256,7 +267,8 @@ class MAPHead(nn.Module):
     nn.init.xavier_uniform_(self.probe.data)
 
     self.mha = MultiheadAttention(
-        self.width, num_heads=self.num_heads, self_attn=False, bias=True)
+      self.width, num_heads=self.num_heads, self_attn=False, bias=True
+    )
     self.layer_norm = nn.LayerNorm(self.width, eps=1e-6)
     self.mlp = MlpBlock(width=self.width, mlp_dim=self.mlp_dim)
 
@@ -278,20 +290,21 @@ class ViT(nn.Module):
   channels: int = 3
 
   def __init__(
-      self,
-      num_classes: int = 1000,
-      patch_size: Tuple[int, int] = (16, 16),
-      width: int = 768,
-      depth: int = 12,
-      mlp_dim: Optional[int] = None,  # Defaults to 4x input dim.
-      num_heads: int = 12,
-      rep_size: Union[int, bool] = True,
-      dropout_rate: Optional[float] = 0.0,
-      head_zeroinit: bool = True,
-      use_glu: bool = False,
-      use_post_layer_norm: bool = False,
-      use_map: bool = False,
-      dtype: Any = torch.float32) -> None:
+    self,
+    num_classes: int = 1000,
+    patch_size: Tuple[int, int] = (16, 16),
+    width: int = 768,
+    depth: int = 12,
+    mlp_dim: Optional[int] = None,  # Defaults to 4x input dim.
+    num_heads: int = 12,
+    rep_size: Union[int, bool] = True,
+    dropout_rate: Optional[float] = 0.0,
+    head_zeroinit: bool = True,
+    use_glu: bool = False,
+    use_post_layer_norm: bool = False,
+    use_map: bool = False,
+    dtype: Any = torch.float32,
+  ) -> None:
     super().__init__()
     if dropout_rate is None:
       dropout_rate = 0.0
@@ -314,21 +327,23 @@ class ViT(nn.Module):
       self.pre_logits = nn.Linear(self.width, rep_size)
 
     self.conv_patch_extract = nn.Conv2d(
-        self.channels,
-        self.width,
-        self.patch_size,
-        stride=self.patch_size,
-        padding='valid')
+      self.channels,
+      self.width,
+      self.patch_size,
+      stride=self.patch_size,
+      padding='valid',
+    )
     self.dropout = nn.Dropout(p=dropout_rate)
 
     self.encoder = Encoder(
-        depth=self.depth,
-        width=self.width,
-        mlp_dim=self.mlp_dim,
-        num_heads=self.num_heads,
-        use_glu=self.use_glu,
-        use_post_layer_norm=self.use_post_layer_norm,
-        dropout_rate=dropout_rate)
+      depth=self.depth,
+      width=self.width,
+      mlp_dim=self.mlp_dim,
+      num_heads=self.num_heads,
+      use_glu=self.use_glu,
+      use_post_layer_norm=self.use_post_layer_norm,
+      dropout_rate=dropout_rate,
+    )
 
     if self.num_classes:
       self.head = nn.Linear(self.width, self.num_classes)
@@ -348,8 +363,8 @@ class ViT(nn.Module):
 
     if self.num_classes:
       if self.head_zeroinit:
-        nn.init.constant_(self.head.weight.data, 0.)
-        nn.init.constant_(self.head.bias.data, 0.)
+        nn.init.constant_(self.head.weight.data, 0.0)
+        nn.init.constant_(self.head.bias.data, 0.0)
       else:
         init_utils.pytorch_default_init(self.head)
 
