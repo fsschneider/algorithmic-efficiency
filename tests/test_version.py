@@ -10,7 +10,6 @@ def test_version_attribute():
   version = algoperf.__version__
   assert isinstance(version, str)
   version_elements = version.split(".")
-  print(version_elements)
   # Only check the first two elements, i.e. major, minor
   # (patch is not checked as it is not required).
   # The remaining elements contain commit hash and dirty status.
