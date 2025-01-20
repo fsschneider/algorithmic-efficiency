@@ -120,7 +120,51 @@ wandb = ["wandb==0.16.5"]
 
 [tool.ruff]
 indent-width = 2
+line-length = 80
+exclude = ["_version.py"]
+
+[tool.ruff.format]
+quote-style = "single"
 
 [tool.ruff.lint]
-# Enable isort rules
-extend-select = ["I"]
+select = [
+  # # Pyflakes
+  # "F",
+  # # pycodestyle
+  # "E",  # E: error
+  # "W",  # W: warning
+  # # mccabe
+  # "C90",
+  # # isort
+  # "I",
+  # # pep8-naming
+  # "N",
+  # # pydocstyle
+  # "D",
+  # # pyupgrade
+  # "UP",
+  # # Pylint
+  # "PL",
+  # # ALL
+  # "ALL",
+]
+ignore = [
+  # Conflicting lint rules with Ruff's formatter (see https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules).
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+  "FBT001",
+  "FBT003",
+  "TD003",
+]
